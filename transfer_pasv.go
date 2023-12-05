@@ -68,7 +68,7 @@ func (c *clientHandler) getCurrentIP() ([]string, error) {
 
 	quads := strings.Split(ip, ".")
 	if len(quads) != 4 {
-		c.logger.Warn("Invalid passive IP", "IP", ip)
+		c.logger.Warn("Invalid passive IP", "IP", ip, "clientIp", c.conn.RemoteAddr())
 
 		return nil, &ipValidationError{error: fmt.Sprintf("invalid passive IP %#v", ip)}
 	}
@@ -95,7 +95,7 @@ func (c *clientHandler) findListenerWithinPortRange(portRange *PortRange) (*net.
 		laddr, errResolve := net.ResolveTCPAddr("tcp", fmt.Sprintf("0.0.0.0:%d", port))
 
 		if errResolve != nil {
-			c.logger.Error("Problem resolving local port", "err", errResolve, "port", port)
+			c.logger.Error("Problem resolving local port", "err", errResolve, "port", port, "clientIp", c.conn.RemoteAddr())
 
 			return nil, fmt.Errorf("could not resolve port %d: %w", port, errResolve)
 		}
@@ -111,6 +111,7 @@ func (c *clientHandler) findListenerWithinPortRange(portRange *PortRange) (*net.
 		"nbAttempts", nbAttempts,
 		"portRangeStart", portRange.Start,
 		"portRAngeEnd", portRange.End,
+		"clientIp", c.conn.RemoteAddr(),
 	)
 
 	return nil, ErrNoAvailableListeningPort
@@ -130,7 +131,7 @@ func (c *clientHandler) handlePASV(param string) error {
 	}
 
 	if err != nil {
-		c.logger.Error("Could not listen for passive connection", "err", err)
+		c.logger.Error("Could not listen for passive connection", "err", err, "clientIp", c.conn.RemoteAddr())
 		c.writeMessage(StatusServiceNotAvailable, fmt.Sprintf("Could not listen for passive connection: %v", err))
 
 		return nil
@@ -142,7 +143,7 @@ func (c *clientHandler) handlePASV(param string) error {
 	if wrapper, ok := c.server.driver.(MainDriverExtensionPassiveWrapper); ok {
 		listener, err = wrapper.WrapPassiveListener(listener)
 		if err != nil {
-			c.logger.Error("Could not wrap passive connection", "err", err)
+			c.logger.Error("Could not wrap passive connection", "err", err, "clientIp", c.conn.RemoteAddr())
 			c.writeMessage(StatusServiceNotAvailable, fmt.Sprintf("Could not listen for passive connection: %v", err))
 
 			return nil
@@ -214,14 +215,14 @@ func (p *passiveTransferHandler) ConnectionWait(wait time.Duration) (net.Conn, e
 
 		ip, err := getIPFromRemoteAddr(p.connection.RemoteAddr())
 		if err != nil {
-			p.logger.Warn("Could get remote passive IP address", "err", err)
+			p.logger.Warn("Could get remote passive IP address", "err", err, "clientIp", p.connection.RemoteAddr())
 
 			return nil, err
 		}
 
 		if err := p.checkDataConn(ip, DataChannelPassive); err != nil {
 			// we don't want to expose the full error to the client, we just log it
-			p.logger.Warn("Could not validate passive data connection requirement", "err", err)
+			p.logger.Warn("Could not validate passive data connection requirement", "err", err, "clientIp", p.connection.RemoteAddr())
 
 			return nil, &ipValidationError{error: "data connection security requirements not met"}
 		}
@@ -251,6 +252,7 @@ func (p *passiveTransferHandler) Close() error {
 			p.logger.Warn(
 				"Problem closing passive listener",
 				"err", err,
+				"clientIp", p.connection.RemoteAddr(),
 			)
 		}
 	}
@@ -260,6 +262,7 @@ func (p *passiveTransferHandler) Close() error {
 			p.logger.Warn(
 				"Problem closing passive connection",
 				"err", err,
+				"clientIp", p.connection.RemoteAddr(),
 			)
 		}
 	}

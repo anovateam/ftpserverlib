@@ -315,7 +315,7 @@ func (c *clientHandler) closeTransfer() error {
 		c.transfer = nil
 
 		if c.debug {
-			c.logger.Debug("Transfer connection closed")
+			c.logger.Debug("Transfer connection closed", "clientIp", c.conn.RemoteAddr())
 		}
 	}
 
@@ -356,6 +356,7 @@ func (c *clientHandler) end() {
 		c.logger.Debug(
 			"Problem closing control connection",
 			"err", err,
+			"clientIp", c.conn.RemoteAddr(),
 		)
 	}
 
@@ -394,7 +395,7 @@ func (c *clientHandler) HandleCommands() {
 	for {
 		if c.reader == nil {
 			if c.debug {
-				c.logger.Debug("Client disconnected", "clean", true)
+				c.logger.Debug("Client disconnected", "clean", true, "clientIp", c.conn.RemoteAddr())
 			}
 
 			return
@@ -413,7 +414,7 @@ func (c *clientHandler) HandleCommands() {
 		if isPrefix {
 			if c.debug {
 				c.logger.Warn("Received line too long, disconnecting client",
-					"size", len(lineSlice))
+					"size", len(lineSlice), "clientIp", c.conn.RemoteAddr())
 			}
 
 			return
@@ -428,7 +429,7 @@ func (c *clientHandler) HandleCommands() {
 		line := string(lineSlice)
 
 		if c.debug {
-			c.logger.Debug("Received line", "line", line)
+			c.logger.Debug("Received line", "line", line, "clientIp", c.conn.RemoteAddr())
 		}
 
 		c.handleCommand(line)
@@ -461,7 +462,7 @@ func (c *clientHandler) handleCommandsStreamError(err error) {
 	default:
 		if err == io.EOF {
 			if c.debug {
-				c.logger.Debug("Client disconnected", "clean", false)
+				c.logger.Debug("Client disconnected", "clean", false, "clientIp", c.conn.RemoteAddr())
 			}
 		} else {
 			c.logger.Error("Read error", "err", err)
@@ -562,7 +563,7 @@ func (c *clientHandler) executeCommandFn(cmdDesc *CommandDescription, command, p
 
 func (c *clientHandler) writeLine(line string) {
 	if c.debug {
-		c.logger.Debug("Sending answer", "line", line)
+		c.logger.Debug("Sending answer", "line", line, "clientIp", c.conn.RemoteAddr())
 	}
 
 	if _, err := c.writer.WriteString(fmt.Sprintf("%s\r\n", line)); err != nil {

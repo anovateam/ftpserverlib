@@ -153,6 +153,7 @@ func (c *clientHandler) doFileTransfer(tr net.Conn, file io.ReadWriter, write bo
 		c.logger.Debug(
 			"Stream copy finished",
 			"writtenBytes", written,
+			"clientIp", c.conn.RemoteAddr(),
 		)
 		if written == 0 {
 			_, err = out.Write([]byte{})

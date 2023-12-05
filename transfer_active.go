@@ -38,7 +38,7 @@ func (c *clientHandler) handlePORT(param string) error {
 	err = c.checkDataConnectionRequirement(raddr.IP, DataChannelActive)
 	if err != nil {
 		// we don't want to expose the full error to the client, we just log it
-		c.logger.Warn("Could not validate active data connection requirement", "err", err)
+		c.logger.Warn("Could not validate active data connection requirement", "err", err, "clientIp", c.conn.RemoteAddr())
 		c.writeMessage(StatusSyntaxErrorParameters, "Your request does not meet "+
 			"the configured security requirements")
 
